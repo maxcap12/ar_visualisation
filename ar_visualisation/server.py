@@ -1,0 +1,68 @@
+from rclpy.node import Node
+from std_msgs.msg import String
+import asyncio
+import websockets
+import threading
+
+class ServerNode(Node):
+    def __init__(self, name: str, host: str, port: int):
+        super().__init__(name)
+
+        self.pub_ = self.create_publisher(
+            String, "/test", 10
+        )
+
+        self.host = host
+        self.port = port
+        self.server = None
+        self.loop = None
+        self.running = True
+
+        self.ws_thread = threading.Thread(target=self.run_async_server)
+        self.ws_thread.daemon = True
+        self.ws_thread.start()
+
+    def run_async_server(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+        self.get_logger().info(f"starting server at url ws://{self.host}:{self.port}")
+
+        async def start_server():
+            server = await websockets.serve(
+                self.websocket_handler, self.host, self.port
+            )
+            await asyncio.Future()
+            
+        try:
+            self.loop.run_until_complete(start_server())
+        except asyncio.CancelledError:
+            self.get_logger().info("server task was canceled")
+        finally:
+            self.get_logger().info("exiting websocket thread")
+
+    async def websocket_handler(self, websocket):
+        self.get_logger().info("client connected!")
+
+        try:
+            async for message in websocket:
+                self.get_logger().info("data received")
+                msg = String()
+                msg.data = message
+                self.pub_.publish(msg)
+
+        except websockets.exceptions.ConnectionClosed:
+            self.get_logger().info("client disconnected")
+
+    def stop(self):
+        self.get_logger().info("server stopping...")
+        self.running = False
+        
+        if self.loop:
+            for task in asyncio.all_tasks(self.loop):
+                task.cancel()
+            
+            self.loop.call_soon_threadsafe(self.loop.stop)
+
+            if self.ws_thread and self.ws_thread.is_alive():
+                self.ws_thread.join(timeout=1.)
