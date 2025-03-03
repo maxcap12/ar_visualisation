@@ -75,7 +75,7 @@ class ClientNode(Node):
             "data": [
                 {
                     "id": mesh.id,
-                    "vertices": mesh.vertices,
+                    "vertices": [{"x": vec.x, "y": vec.y, "z": vec.z} for vec in mesh.vertices],
                     "triangles": mesh.triangles
                 }
                 for mesh in msg.meshes
