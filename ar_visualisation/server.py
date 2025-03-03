@@ -3,6 +3,7 @@ from std_msgs.msg import String
 import asyncio
 import websockets
 import threading
+import json
 
 class ServerNode(Node):
     def __init__(self, name: str, host: str, port: int):
@@ -47,9 +48,29 @@ class ServerNode(Node):
         try:
             async for message in websocket:
                 self.get_logger().info("data received")
-                msg = String()
-                msg.data = message
-                self.pub_.publish(msg)
+                
+                # Parse the incoming message
+                try:
+                    data = json.loads(message)
+                    # Generate a unique message ID if not provided
+                    msg_id = data.get("msg_id", "unknown")
+                    
+                    # Publish to ROS topic
+                    msg = String()
+                    msg.data = message
+                    self.pub_.publish(msg)
+                    
+                    # Send acknowledgment with the message ID
+                    ack_response = json.dumps({"status": "ok", "msg_id": msg_id})
+                    await websocket.send(ack_response)
+                    self.get_logger().info(f"sent ACK for message {msg_id}")
+                
+                except json.JSONDecodeError:
+                    self.get_logger().error("Received invalid JSON message")
+                    await websocket.send(json.dumps({"status": "error", "reason": "invalid_json"}))
+                except Exception as e:
+                    self.get_logger().error(f"Error processing message: {e}")
+                    await websocket.send(json.dumps({"status": "error", "reason": str(e)}))
 
         except websockets.exceptions.ConnectionClosed:
             self.get_logger().info("client disconnected")
