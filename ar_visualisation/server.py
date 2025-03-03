@@ -24,6 +24,9 @@ class ServerNode(Node):
         self.ws_thread.start()
 
     def run_async_server(self):
+        """
+        Runs server
+        """
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
@@ -37,25 +40,25 @@ class ServerNode(Node):
             
         try:
             self.loop.run_until_complete(start_server())
+
         except asyncio.CancelledError:
             self.get_logger().info("server task was canceled")
+            
         finally:
             self.get_logger().info("exiting websocket thread")
 
     async def websocket_handler(self, websocket):
+        """
+        Websocket callback, publishes the data received, sends acknowledgement to client
+        """
         self.get_logger().info("client connected!")
 
         try:
             async for message in websocket:
-                self.get_logger().info("data received")
-                
-                # Parse the incoming message
                 try:
                     data = json.loads(message)
-                    # Generate a unique message ID if not provided
                     msg_id = data.get("msg_id", "unknown")
                     
-                    # Publish to ROS topic
                     msg = String()
                     msg.data = message
                     self.pub_.publish(msg)
@@ -63,11 +66,11 @@ class ServerNode(Node):
                     # Send acknowledgment with the message ID
                     ack_response = json.dumps({"status": "ok", "msg_id": msg_id})
                     await websocket.send(ack_response)
-                    self.get_logger().info(f"sent ACK for message {msg_id}")
                 
                 except json.JSONDecodeError:
                     self.get_logger().error("Received invalid JSON message")
                     await websocket.send(json.dumps({"status": "error", "reason": "invalid_json"}))
+                
                 except Exception as e:
                     self.get_logger().error(f"Error processing message: {e}")
                     await websocket.send(json.dumps({"status": "error", "reason": str(e)}))
@@ -76,6 +79,9 @@ class ServerNode(Node):
             self.get_logger().info("client disconnected")
 
     def stop(self):
+        """
+        Properly stops server
+        """
         self.get_logger().info("server stopping...")
         self.running = False
         
