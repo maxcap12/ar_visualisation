@@ -6,7 +6,7 @@ import threading
 import json
 
 class ServerNode(Node):
-    def __init__(self, name: str, host: str, port: int):
+    def __init__(self, name: str, port: int, host: str = "0.0.0.0"):
         super().__init__(name)
 
         self.pub_ = self.create_publisher(

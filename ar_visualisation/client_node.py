@@ -4,7 +4,7 @@ from ar_visualisation.client import ClientNode
 
 def main():
     rclpy.init()
-    node = ClientNode("client_node", "ws://localhost:8765")
+    node = ClientNode("client_node", 8765, "localhost")
     
     try:
         rclpy.spin(node)

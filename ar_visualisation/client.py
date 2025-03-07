@@ -9,7 +9,7 @@ import time
 from collections import deque
 
 class ClientNode(Node):
-    def __init__(self, name: str, url: str, max_retries=3, retry_delay=2.0):
+    def __init__(self, name: str, port: int, host: str, max_retries=3, retry_delay=2.0):
         super().__init__(name)
 
         self.sub_ = self.create_subscription(
@@ -17,7 +17,7 @@ class ClientNode(Node):
         )
         
         self.ws = None
-        self.url = url
+        self.host = host
         self.connected = False
         self.connect_lock = threading.Lock()
         self.send_lock = threading.Lock()
