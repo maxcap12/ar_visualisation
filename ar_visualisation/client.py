@@ -18,6 +18,7 @@ class ClientNode(Node):
         
         self.ws = None
         self.host = host
+        self.port = port
         self.connected = False
         self.connect_lock = threading.Lock()
         self.send_lock = threading.Lock()
@@ -52,8 +53,9 @@ class ClientNode(Node):
         Tries to connect to the server
         """
         try:
-            self.get_logger().info(f"connecting to {self.url}...")
-            self.ws = await websockets.connect(self.url)
+            url = f"ws://{self.host}:{self.port}"
+            self.get_logger().info(f"connecting to {url}...")
+            self.ws = await websockets.connect(url)
             self.connected = True
             self.get_logger().info("connected!")
             asyncio.run_coroutine_threadsafe(self.__async__listen(), self.loop)
