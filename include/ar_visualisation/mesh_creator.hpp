@@ -6,10 +6,10 @@
 #include <unordered_map>
 
 #include "ar_visualisation/mesh_wall.hpp"
-#include "situational_graphs_msgs/msg/planes_data.hpp"
-#include "situational_graphs_msgs/msg/plane_data.hpp"
-#include "situational_graphs_msgs/msg/meshes_data.hpp"
-#include "situational_graphs_msgs/msg/mesh_data.hpp"
+#include "ar_visualisation_msgs/msg/planes_data.hpp"
+#include "ar_visualisation_msgs/msg/plane_data.hpp"
+#include "ar_visualisation_msgs/msg/meshes_data.hpp"
+#include "ar_visualisation_msgs/msg/mesh_data.hpp"
 
 namespace ar_visualisation 
 {
@@ -24,10 +24,10 @@ public:
 private:
     void setupPublishers();
     void setupSubscriptions();
-    void wallDataCallback(const situational_graphs_msgs::msg::PlanesData::SharedPtr msg);
+    void wallDataCallback(const ar_visualisation_msgs::msg::PlanesData::SharedPtr msg);
 
-    rclcpp::Subscription<situational_graphs_msgs::msg::PlanesData>::SharedPtr sub_;
-    rclcpp::Publisher<situational_graphs_msgs::msg::MeshesData>::SharedPtr pub_;
+    rclcpp::Subscription<ar_visualisation_msgs::msg::PlanesData>::SharedPtr sub_;
+    rclcpp::Publisher<ar_visualisation_msgs::msg::MeshesData>::SharedPtr pub_;
 
     std::unordered_map<int, MeshWall> walls;
 };
