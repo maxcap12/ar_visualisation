@@ -1,5 +1,5 @@
 from rclpy.node import Node
-from situational_graphs_msgs.msg import MeshesData
+from ar_visualisation_msgs.msg import MeshesData
 import json
 import websockets
 import asyncio
@@ -9,7 +9,7 @@ import time
 from collections import deque
 
 class ClientNode(Node):
-    def __init__(self, name: str, port: int, host: str, max_retries=3, retry_delay=2.0):
+    def __init__(self, name: str, host: str, port: int, max_retries=3, retry_delay=2.0):
         super().__init__(name)
 
         self.sub_ = self.create_subscription(

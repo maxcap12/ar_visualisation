@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 import rclpy
 from ar_visualisation.client import ClientNode
+import argparse
 
-def main():
+def main(args):
     rclpy.init()
-    node = ClientNode("client_node", 8765, "localhost")
+    node = ClientNode("client_node", args.host, args.port)
     
     try:
         rclpy.spin(node)
@@ -12,7 +13,11 @@ def main():
         pass
     finally:
         node.stop()
-        rclpy.shutdown()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("host", type=str)
+    parser.add_argument("port", type=int)
+    args, _ = parser.parse_known_args()
+
+    main(args)

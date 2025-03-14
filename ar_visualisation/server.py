@@ -4,9 +4,10 @@ import asyncio
 import websockets
 import threading
 import json
+import socket
 
 class ServerNode(Node):
-    def __init__(self, name: str, port: int, host: str = "0.0.0.0"):
+    def __init__(self, name: str, host: str, port: int):
         super().__init__(name)
 
         self.pub_ = self.create_publisher(
@@ -23,6 +24,19 @@ class ServerNode(Node):
         self.ws_thread.daemon = True
         self.ws_thread.start()
 
+    def show_server_ip(self):
+        """
+        Prints ip address of the server
+        """
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            server_ip = s.getsockname()[0]
+            s.close()
+            self.get_logger().info(f"server ready at host {server_ip} and port {self.port}")
+        except Exception:
+            self.get_logger().info(f"server ready at host localhost and port {self.port}")
+
     def run_async_server(self):
         """
         Runs server
@@ -30,12 +44,11 @@ class ServerNode(Node):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
-        self.get_logger().info(f"starting server at url ws://{self.host}:{self.port}")
-
         async def start_server():
             server = await websockets.serve(
                 self.websocket_handler, self.host, self.port
             )
+            self.show_server_ip()
             await asyncio.Future()
             
         try:
