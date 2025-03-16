@@ -1,5 +1,5 @@
 from rclpy.node import Node
-from ar_visualisation_msgs.msg import MeshesData
+from situational_graphs_msgs.msg import MeshesData
 import json
 import websockets
 import asyncio

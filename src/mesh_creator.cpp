@@ -19,27 +19,27 @@ MeshCreator::~MeshCreator()
 void MeshCreator::setupPublishers()
 {
 
-    pub_ = this->create_publisher<ar_visualisation_msgs::msg::MeshesData>(
+    pub_ = this->create_publisher<situational_graphs_msgs::msg::MeshesData>(
         "/ar_visualisation/mesh_data", 10
     );
 }
 
 void MeshCreator::setupSubscriptions()
 {
-    sub_ = this->create_subscription<ar_visualisation_msgs::msg::PlanesData>(
+    sub_ = this->create_subscription<situational_graphs_msgs::msg::PlanesData>(
         "/s_graphs/all_map_planes", 10, 
         std::bind(&MeshCreator::wallDataCallback, this, std::placeholders::_1)
     );
 }
 
-void MeshCreator::wallDataCallback(const ar_visualisation_msgs::msg::PlanesData::SharedPtr msg)
+void MeshCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData::SharedPtr msg)
 {
-    std::vector<ar_visualisation_msgs::msg::PlaneData> planes;
+    std::vector<situational_graphs_msgs::msg::PlaneData> planes;
     planes.reserve(msg->x_planes.size() + msg->y_planes.size());
     planes.insert(planes.end(), msg->x_planes.begin(), msg->x_planes.end());
     planes.insert(planes.end(), msg->y_planes.begin(), msg->y_planes.end());
 
-    auto data = ar_visualisation_msgs::msg::MeshesData();
+    auto data = situational_graphs_msgs::msg::MeshesData();
 
     for (auto plane: planes)
     {
@@ -49,7 +49,7 @@ void MeshCreator::wallDataCallback(const ar_visualisation_msgs::msg::PlanesData:
         {
             if (walls[id].update(plane.plane_points))
             {
-                auto mesh_data = ar_visualisation_msgs::msg::MeshData();
+                auto mesh_data = situational_graphs_msgs::msg::MeshData();
                 mesh_data.header.stamp = this->now();
                 mesh_data.header.frame_id = "base_link";
                 mesh_data.id = id;
@@ -63,7 +63,7 @@ void MeshCreator::wallDataCallback(const ar_visualisation_msgs::msg::PlanesData:
         {
             walls[id] = MeshWall(plane.plane_points);
 
-            auto mesh_data = ar_visualisation_msgs::msg::MeshData();
+            auto mesh_data = situational_graphs_msgs::msg::MeshData();
             mesh_data.header.stamp = this->now();
             mesh_data.header.frame_id = "base_link";
             mesh_data.id = id;
@@ -77,6 +77,7 @@ void MeshCreator::wallDataCallback(const ar_visualisation_msgs::msg::PlanesData:
     data.header.stamp = this->now();
     data.header.frame_id = "base_link";
     pub_->publish(data);
+    std::cout << "data published" << std::endl;
 }
 
 }
