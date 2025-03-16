@@ -77,7 +77,6 @@ void MeshCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesDat
     data.header.stamp = this->now();
     data.header.frame_id = "base_link";
     pub_->publish(data);
-    std::cout << "data published" << std::endl;
 }
 
 }

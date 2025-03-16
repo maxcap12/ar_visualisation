@@ -32,7 +32,6 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(
   PROGRAMS
-    ar_visualisation/client_node.py
     ar_visualisation/server_node.py
   DESTINATION lib/${PROJECT_NAME}
 )

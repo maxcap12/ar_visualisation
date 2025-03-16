@@ -132,15 +132,23 @@ class ServerNode(Node):
 
         async def send_data():
             try:
-                await self.connection.send(data)
+                await self.connection.send(json.dumps(data))
                 self.get_logger().info("data sent")
 
             except websockets.exceptions.ConnectionClosed:
                 self.get_logger().warn("client deconnected while trying to send data")
                 self.connection = None
 
-        if self.loop is not None and self.connection is not None:
-            asyncio.run_coroutine_threadsafe(send_data(), self.loop)
+        
+        if self.loop and self.connection:
+            future = asyncio.run_coroutine_threadsafe(send_data(), self.loop)
+            
+            # Optionally add a callback to handle completion
+            future.add_done_callback(
+                lambda f: self.get_logger().debug("Send operation completed")
+                if not f.exception() else 
+                self.get_logger().error(f"Send failed with: {f.exception()}")
+            )
 
     def stop(self):
         """
