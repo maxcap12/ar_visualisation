@@ -1,10 +1,13 @@
 from rclpy.node import Node
 from std_msgs.msg import String
+from ar_visualisation_msgs.msg import MeshesData
 import asyncio
 import websockets
 import threading
 import json
 import socket
+import uuid
+import time
 
 class ServerNode(Node):
     def __init__(self, name: str, host: str, port: int):
@@ -14,8 +17,14 @@ class ServerNode(Node):
             String, "/test", 10
         )
 
+        self.sub_ = self.create_subscription(
+            MeshesData, "/ar_visualisation/mesh_data", self.callback, 10
+        )
+
         self.host = host
         self.port = port
+
+        self.connection = None
         self.server = None
         self.loop = None
         self.running = True
@@ -66,6 +75,12 @@ class ServerNode(Node):
         """
         self.get_logger().info("client connected!")
 
+        if self.connection is not None:
+            self.get_logger().warn("new connection received, ignoring")
+            return
+        
+        self.connection = websocket
+
         try:
             async for message in websocket:
                 try:
@@ -76,9 +91,8 @@ class ServerNode(Node):
                     msg.data = message
                     self.pub_.publish(msg)
                     
-                    # Send acknowledgment with the message ID
                     ack_response = json.dumps({"status": "ok", "msg_id": msg_id})
-                    await websocket.send(ack_response)
+                    await websocket.send(ack_response)  
                 
                 except json.JSONDecodeError:
                     self.get_logger().error("Received invalid JSON message")
@@ -90,6 +104,43 @@ class ServerNode(Node):
 
         except websockets.exceptions.ConnectionClosed:
             self.get_logger().info("client disconnected")
+        
+        finally:
+            self.connection = None
+
+    def callback(self, msg: MeshesData):
+        """
+        Transforms the message received into a JSON, then sends it through the websocket
+        """
+        if self.connection is None:
+            self.get_logger().info("data received but no connection to client")
+            return
+
+        msg_id = str(uuid.uuid4())
+        data = {
+            "msg_id": msg_id,
+            "timestamp": time.time(),
+            "data": [
+                {
+                    "id": mesh.id,
+                    "vertices": [{"x": v.x, "y": v.y, "z": v.z} for v in mesh.vertices],
+                    "triangles": list(mesh.triangles)
+                }
+                for mesh in msg.meshes
+            ]
+        }
+
+        async def send_data():
+            try:
+                await self.connection.send(data)
+                self.get_logger().info("data sent")
+
+            except websockets.exceptions.ConnectionClosed:
+                self.get_logger().warn("client deconnected while trying to send data")
+                self.connection = None
+
+        if self.loop is not None and self.connection is not None:
+            asyncio.run_coroutine_threadsafe(send_data(), self.loop)
 
     def stop(self):
         """
@@ -99,10 +150,20 @@ class ServerNode(Node):
         self.running = False
         
         if self.loop:
-            for task in asyncio.all_tasks(self.loop):
-                task.cancel()
+            asyncio.run_coroutine_threadsafe(self.cancel_tasks(), self.loop)
             
             self.loop.call_soon_threadsafe(self.loop.stop)
 
             if self.ws_thread and self.ws_thread.is_alive():
                 self.ws_thread.join(timeout=1.)
+
+    async def cancel_tasks(self):
+        """
+        Cancels running tasks
+        """
+        for task in asyncio.all_tasks(self.loop):
+            task.cancel()
+
+        if self.connection:
+            await self.connection.close()
+            self.connection = None
