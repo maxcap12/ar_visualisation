@@ -1,12 +1,11 @@
 from rclpy.node import Node
-from std_msgs.msg import String
+from geometry_msgs.msg import Twist
 from situational_graphs_msgs.msg import MeshesData
 import asyncio
 import websockets
 import threading
 import json
 import socket
-import uuid
 import time
 
 class ServerNode(Node):
@@ -14,7 +13,7 @@ class ServerNode(Node):
         super().__init__(name)
 
         self.pub_ = self.create_publisher(
-            String, "/test", 10
+            Twist, "/cmd_vel", 10
         )
 
         self.sub_ = self.create_subscription(
@@ -73,40 +72,39 @@ class ServerNode(Node):
         """
         Websocket callback, publishes the data received, sends acknowledgement to client
         """
-        self.get_logger().info("client connected!")
-
         if self.connection is not None:
             self.get_logger().warn("new connection received, ignoring")
             return
         
         self.connection = websocket
+        self.get_logger().info("client connected!")
 
         try:
+            # Instead of iterating over websocket directly
             async for message in websocket:
                 try:
                     data = json.loads(message)
-                    msg_id = data.get("msg_id", "unknown")
-                    
-                    msg = String()
-                    msg.data = message
+                    self.get_logger().info("message received")
+                    msg = Twist()
+                    msg.linear.x = data["linear"]["x"]
+                    msg.linear.y = data["linear"]["y"]
+                    msg.linear.z = data["linear"]["z"]
+                    msg.angular.z = data["angular"]["z"]
+
                     self.pub_.publish(msg)
-                    
-                    ack_response = json.dumps({"status": "ok", "msg_id": msg_id})
-                    await websocket.send(ack_response)  
                 
                 except json.JSONDecodeError:
                     self.get_logger().error("Received invalid JSON message")
-                    await websocket.send(json.dumps({"status": "error", "reason": "invalid_json"}))
-                
+                    
                 except Exception as e:
                     self.get_logger().error(f"Error processing message: {e}")
-                    await websocket.send(json.dumps({"status": "error", "reason": str(e)}))
 
         except websockets.exceptions.ConnectionClosed:
-            self.get_logger().info("client disconnected")
+            pass
         
         finally:
             self.connection = None
+            self.get_logger().info("client disconnected")
 
     def callback(self, msg: MeshesData):
         """
@@ -116,9 +114,7 @@ class ServerNode(Node):
             self.get_logger().info("data received but no connection to client")
             return
 
-        msg_id = str(uuid.uuid4())
         data = {
-            "msg_id": msg_id,
             "timestamp": time.time(),
             "data": [
                 {
@@ -142,13 +138,6 @@ class ServerNode(Node):
         
         if self.loop and self.connection:
             future = asyncio.run_coroutine_threadsafe(send_data(), self.loop)
-            
-            # Optionally add a callback to handle completion
-            future.add_done_callback(
-                lambda f: self.get_logger().debug("Send operation completed")
-                if not f.exception() else 
-                self.get_logger().error(f"Send failed with: {f.exception()}")
-            )
 
     def stop(self):
         """
