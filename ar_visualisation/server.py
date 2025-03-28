@@ -84,7 +84,6 @@ class ServerNode(Node):
             async for message in websocket:
                 try:
                     data = json.loads(message)
-                    self.get_logger().info("message received")
                     msg = Twist()
                     msg.linear.x = data["linear"]["x"]
                     msg.linear.y = data["linear"]["y"]
