@@ -85,10 +85,10 @@ class ServerNode(Node):
                 try:
                     data = json.loads(message)
                     msg = Twist()
-                    msg.linear.x = data["linear"]["x"]
-                    msg.linear.y = data["linear"]["y"]
-                    msg.linear.z = data["linear"]["z"]
-                    msg.angular.z = data["angular"]["z"]
+                    msg.linear.x = data["linear"]["x"] * 0.2
+                    msg.linear.y = data["linear"]["y"] * 0.2
+                    msg.linear.z = data["linear"]["z"] * 0.2
+                    msg.angular.z = data["angular"]["z"] * 0.2
 
                     self.pub_.publish(msg)
                 
