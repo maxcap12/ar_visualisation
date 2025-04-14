@@ -13,15 +13,15 @@ find_package(rclpy REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(situational_graphs_msgs REQUIRED)
 
-add_executable(mesh_creator src/mesh_creator.cpp src/mesh_wall.cpp)
+add_executable(map_creator src/map_creator.cpp src/mesh_wall.cpp)
 
-target_include_directories(mesh_creator PUBLIC
+target_include_directories(map_creator PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
   
-target_compile_features(mesh_creator PUBLIC c_std_99 cxx_std_17) 
+target_compile_features(map_creator PUBLIC c_std_99 cxx_std_17) 
 
-ament_target_dependencies(mesh_creator
+ament_target_dependencies(map_creator
   rclcpp
   rclpy
   geometry_msgs
@@ -33,6 +33,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(
   PROGRAMS
     ar_visualisation/server_node.py
+    ar_visualisation/test.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -41,7 +42,7 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(TARGETS mesh_creator
+install(TARGETS map_creator
   DESTINATION lib/${PROJECT_NAME}
 )
   

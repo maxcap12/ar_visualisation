@@ -1,22 +1,22 @@
-#include "ar_visualisation/mesh_creator.hpp"
+#include "ar_visualisation/map_creator.hpp"
 
 namespace ar_visualisation
 {
 
-MeshCreator::MeshCreator()
- : Node("mesh_creator_node")
+MapCreator::MapCreator()
+ : Node("map_creator_node")
 {
   setupPublishers();
   setupSubscriptions();
-  RCLCPP_INFO(this->get_logger(), "mesh creator ready");
+  RCLCPP_INFO(this->get_logger(), "map creator ready");
 }
 
-MeshCreator::~MeshCreator()
+MapCreator::~MapCreator()
 {
 
 }
 
-void MeshCreator::setupPublishers()
+void MapCreator::setupPublishers()
 {
 
     pub_ = this->create_publisher<situational_graphs_msgs::msg::MeshesData>(
@@ -24,15 +24,15 @@ void MeshCreator::setupPublishers()
     );
 }
 
-void MeshCreator::setupSubscriptions()
+void MapCreator::setupSubscriptions()
 {
     sub_ = this->create_subscription<situational_graphs_msgs::msg::PlanesData>(
         "/s_graphs/all_map_planes", 10, 
-        std::bind(&MeshCreator::wallDataCallback, this, std::placeholders::_1)
+        std::bind(&MapCreator::wallDataCallback, this, std::placeholders::_1)
     );
 }
 
-void MeshCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData::SharedPtr msg)
+void MapCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData::SharedPtr msg)
 {
     std::vector<situational_graphs_msgs::msg::PlaneData> planes;
     planes.reserve(msg->x_planes.size() + msg->y_planes.size());
@@ -84,7 +84,7 @@ void MeshCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesDat
 int main(int argc, char ** argv)
 {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ar_visualisation::MeshCreator>());
+    rclcpp::spin(std::make_shared<ar_visualisation::MapCreator>());
     rclcpp::shutdown();
     return 0;
 }

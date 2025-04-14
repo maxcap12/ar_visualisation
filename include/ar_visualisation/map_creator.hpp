@@ -14,12 +14,12 @@
 namespace ar_visualisation 
 {
 
-class MeshCreator: public rclcpp::Node
+class MapCreator: public rclcpp::Node
 {
 
 public:
-    MeshCreator();
-    ~MeshCreator();
+    MapCreator();
+    ~MapCreator();
 
 private:
     void setupPublishers();

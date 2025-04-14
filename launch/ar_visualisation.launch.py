@@ -26,10 +26,10 @@ def generate_launch_description():
         ]
     )
 
-    mesh_creator_node = Node(
+    map_creator_node = Node(
         package="ar_visualisation",
-        executable="mesh_creator",
-        name="mesh_creator_node"
+        executable="map_creator",
+        name="map_creator_node"
     )
 
     return LaunchDescription([
@@ -37,5 +37,5 @@ def generate_launch_description():
         server_host_arg,
         port_arg,
         server_node,
-        mesh_creator_node
+        map_creator_node
     ])
