@@ -10,9 +10,10 @@ RUN apt update && \
     wget \
     git \
     nano \
+    ros-$ROS_DISTRO-cv-bridge \
     ros-$ROS_DISTRO-rmw-cyclonedds-cpp 
 
-RUN python3 -m pip install future py-trees scikit-learn scipy==1.13.1 numpy==1.23.4
+RUN python3 -m pip install future py-trees scikit-learn scipy==1.13.1 numpy==1.23.4 websockets
 
 # setup ssh key
 ARG ssh_prv_key
@@ -27,15 +28,20 @@ RUN echo "$ssh_prv_key" > /root/.ssh/id_rsa && \
     chmod 600 /root/.ssh/id_rsa.pub
 
 #  Creating working spaces directory and clone s_graphs inside it
-RUN mkdir -p /workspaces
-WORKDIR /workspaces
+WORKDIR /workspace/src
 RUN git clone git@github.com:snt-arg/situational_graphs.git s_graphs
 
 # Fetching all packages specified in the .rosinstall file and running build everything with colcon build.
-WORKDIR /workspaces/s_graphs
+WORKDIR /workspace/src/s_graphs
 RUN vcs import . < .rosinstall_ros2
-WORKDIR /workspaces/s_graphs
+WORKDIR /workspace/src/s_graphs
 RUN sudo apt install python3-rosdep
+
+WORKDIR /workspace/src
+RUN git clone https://github.com/maxcap12/ar_visualisation_msgs.git
+RUN git clone https://github.com/maxcap12/ar_visualisation.git
+
+WORKDIR /workspace
 RUN rosdep install --from-paths . -y --ignore-src -r
 SHELL ["/bin/bash", "-c"]
 RUN source /opt/ros/humble/setup.bash && \
@@ -49,13 +55,16 @@ RUN tar -xf mprocs* && \
     mv mprocs /usr/local/bin
 
 # alias for mprocs
-RUN echo "alias mprocs_real='mprocs -c /workspaces/s_graphs/.real_mprocs.yaml'" >> /.bashrc
-RUN echo "alias mprocs_virtual='mprocs -c /workspaces/s_graphs/.virtual_mprocs.yaml'" >> /.bashrc
+RUN echo "alias mprocs_real='mprocs -c /workspace/src/s_graphs/.real_mprocs.yaml'" >> /.bashrc
+RUN echo "alias mprocs_virtual='mprocs -c /workspace/src/s_graphs/.virtual_mprocs.yaml'" >> /.bashrc
 RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
-RUN echo "alias s_graphs='bash -c \"source /workspaces/s_graphs/install/setup.bash && ros2 launch lidar_situational_graphs s_graphs_launch.py lidar_topic:=/cloud/undistorted base_frame:=base_link compute_odom:=false\"'" >> ~/.bashrc
+RUN echo "alias s_graphs='bash -c \"source /workspace/src/install/setup.bash && ros2 launch lidar_situational_graphs s_graphs_launch.py lidar_topic:=/cloud/undistorted base_frame:=base_link compute_odom:=false\"'" >> ~/.bashrc
 
 ENV ROS_DOMAIN_ID=42
 ENV ROS_LOCALHOST_ONLY=0
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+RUN echo "source /workspace/install/setup.bash" >> ~/.bashrc
+RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
 
 # remove the ssh keys
 RUN rm -rf /.ssh/
