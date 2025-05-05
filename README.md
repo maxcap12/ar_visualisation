@@ -1,8 +1,8 @@
 # ar_visualisation
 
-docker build --build-arg ssh_prv_key="$(cat ~/.ssh/id_ed25519)" --build-arg ssh_pub_key="$(cat ~/.ssh/id_ed25519.pub)" -t bsp_s_graphs ./docker/s_graphs/
-docker build -t bsp_spot ./docker/spot/
-docker build -t bsp_ar_visualisation ./docker/ar_visualisation/
+docker build --build-arg ssh_prv_key="$(cat ~/.ssh/id_ed25519)" --build-arg ssh_pub_key="$(cat ~/.ssh/id_ed25519.pub)" -t bsp_s_graphs ./docker/s_graphs/ <br/>
+docker build -t bsp_spot ./docker/spot/ <br/>
+docker build -t bsp_ar_visualisation ./docker/ar_visualisation/ <br/>
 
 docker save bsp_s_graphs | gzip > bsp_s_graphs.tar.gz <br/>
 scp -P 20022 bsp_s_graphs.tar.gz spot@192.168.80.3:~/ <br/>
