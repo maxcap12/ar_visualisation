@@ -1,6 +1,6 @@
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from ar_visualisation_msgs.msg import MeshesData
+from ar_visualisation_msgs.msg import MeshesData, MarkerData
 import asyncio
 import websockets
 import threading
@@ -17,11 +17,11 @@ class ServerNode(Node):
         )
 
         self.wall_sub_ = self.create_subscription(
-            MeshesData, "/ar_visualisation/mesh_data", self.callback, 10
+            MeshesData, "/ar_visualisation/mesh_data", self.wall_callback, 10
         )
 
         self.marker_sub_ = self.create_subscription(
-
+            MarkerData, "/ar_visualisation/marker_data", self.marker_callback, 10
         )
 
         self.host = host
@@ -109,15 +109,12 @@ class ServerNode(Node):
             self.connection = None
             self.get_logger().info("client disconnected")
 
-    def callback(self, msg: MeshesData):
+    def wall_callback(self, msg: MeshesData):
         """
         Transforms the message received into a JSON, then sends it through the websocket
         """
-        if self.connection is None:
-            self.get_logger().info("data received but no connection to client")
-            return
-
         data = {
+            "type": "wall",
             "timestamp": time.time(),
             "data": [
                 {
@@ -129,15 +126,59 @@ class ServerNode(Node):
             ]
         }
 
+        self.send(data)
+        
+
+    def marker_callback(self, msg: MarkerData):
+        """
+        Transforms the message received into a JSON, then send it through the websocket
+        """
+        data = {
+            "type": "marker",
+            "timestamp": time.time(),
+            "data": {
+                "id": msg.id,
+                "action": msg.action,
+                "type": msg.type,
+                "position": {
+                    "x": msg.position.x, "y": msg.position.y, "z": msg.position.z
+                },
+                "markerScale": {
+                    "x": msg.marker_scale.x, "y": msg.marker_scale.y, "z": msg.marker_scale.z
+                },
+                "markerColor": {
+                    "r": msg.marker_color.r, "g": msg.marker_color.g, "b": msg.marker_color.b, "a": msg.marker_color.a
+                },
+                "lines": [{
+                    "x": line.x, "y": line.y, "z": line.z
+                } for line in msg.lines ],
+                "linesScale": {
+                    "x": msg.lines_scale.x, "y": msg.lines_scale.y, "z": msg.lines_scale.z
+                },
+                "linesColor": {
+                    "r": msg.lines_color.r, "g": msg.lines_color.g, "b": msg.lines_color.b, "a": msg.lines_color.a
+                }
+            }
+        }
+
+        self.send(data)
+
+    def send(self, data):
+        """
+        Sends data through the websocket
+        """
+        if self.connection is None:
+            self.get_logger().info("data received but no connection to client")
+            return
+        
         async def send_data():
-            try:
-                await self.connection.send(json.dumps(data))
-                self.get_logger().info("data sent")
+                try:
+                    await self.connection.send(json.dumps(data))
+                    self.get_logger().info("data sent")
 
-            except websockets.exceptions.ConnectionClosed:
-                self.get_logger().warn("client deconnected while trying to send data")
-                self.connection = None
-
+                except websockets.exceptions.ConnectionClosed:
+                    self.get_logger().warn("client deconnected while trying to send data")
+                    self.connection = None
         
         if self.loop and self.connection:
             future = asyncio.run_coroutine_threadsafe(send_data(), self.loop)
