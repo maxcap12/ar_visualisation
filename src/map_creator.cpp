@@ -18,12 +18,11 @@ MapCreator::~MapCreator()
 
 void MapCreator::setupPublishers()
 {
-
-    wall_pub_ = this->create_publisher<situational_graphs_msgs::msg::MeshesData>(
+    wall_pub_ = this->create_publisher<ar_visualisation_msgs::msg::MeshesData>(
         "/ar_visualisation/mesh_data", 10
     );
 
-    marker_pub_ = this->create_publisher<situational_graphs_msgs::msg::MarkerData>(
+    marker_pub_ = this->create_publisher<ar_visualisation_msgs::msg::MarkerData>(
         "/ar_visualisation/marker_data", 10
     );
 }
@@ -95,22 +94,22 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
         auto ns = marker.ns;
         auto id = marker.id;
         std::unordered_map<int, MapMarker> *map;
-        MarkerType type;
+        int type;
 
         if (ns == "rooms" || ns == "rooms_line")
         {
             map = &roomMarkers;
-            type = MarkerType::Room;
+            type = MapMarker::ROOM;
         }
         else if (ns == "floors" || ns == "floor_lines")
         {
             map = &floorMarkers;
-            type = MarkerType::Floor;
+            type = MapMarker::FLOOR;
         }
         else if (ns == "y_infinite_room" || ns == "infinite_room_y_lines")
         {
             map = &corridorMarkers;
-            type = MarkerType::Corridor;
+            type = MapMarker::CORRIDOR;
         }
         else continue;
 

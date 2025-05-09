@@ -32,6 +32,7 @@ ament_target_dependencies(map_creator
   rclpy
   geometry_msgs
   situational_graphs_msgs
+  ar_visualisation_msgs
   visualization_msgs
 )
 
