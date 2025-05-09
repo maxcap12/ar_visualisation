@@ -1,0 +1,10 @@
+# - IDEs Folder
+.vscode
+build/
+log/
+install/
+*~
+
+# - Clangd
+compile_commands.json
+.cache

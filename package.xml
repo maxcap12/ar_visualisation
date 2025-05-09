@@ -12,6 +12,7 @@
   <depend>rclcpp</depend>
   <depend>rclpy</depend>
   <depend>situational_graphs_msgs</depend>
+  <depend>ar_visualisation_msgs</depend>
   <depend>geometry_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>

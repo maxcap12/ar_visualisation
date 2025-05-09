@@ -12,6 +12,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(situational_graphs_msgs REQUIRED)
+find_package(ar_visualisation_msgs REQUIRED)
 
 add_executable(map_creator src/map_creator.cpp src/mesh_wall.cpp)
 
@@ -26,6 +27,7 @@ ament_target_dependencies(map_creator
   rclpy
   geometry_msgs
   situational_graphs_msgs
+  ar_visualisation_msgs
 )
 
 ament_python_install_package(${PROJECT_NAME})
