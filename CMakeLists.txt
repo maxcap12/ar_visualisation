@@ -11,10 +11,15 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(situational_graphs_msgs REQUIRED)
 find_package(ar_visualisation_msgs REQUIRED)
 
-add_executable(map_creator src/map_creator.cpp src/mesh_wall.cpp)
+add_executable(map_creator 
+    src/map_creator.cpp 
+    src/mesh_wall.cpp 
+    src/map_marker.cpp
+)
 
 target_include_directories(map_creator PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -27,7 +32,7 @@ ament_target_dependencies(map_creator
   rclpy
   geometry_msgs
   situational_graphs_msgs
-  ar_visualisation_msgs
+  visualization_msgs
 )
 
 ament_python_install_package(${PROJECT_NAME})

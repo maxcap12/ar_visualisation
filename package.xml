@@ -4,7 +4,7 @@
   <name>ar_visualisation</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="maximecap12@gmail.com">maxcap</maintainer>
+  <maintainer email="maximecap12@gmail.com">maxime capdouze</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -14,6 +14,7 @@
   <depend>situational_graphs_msgs</depend>
   <depend>ar_visualisation_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

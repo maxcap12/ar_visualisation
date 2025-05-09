@@ -19,16 +19,25 @@ MapCreator::~MapCreator()
 void MapCreator::setupPublishers()
 {
 
-    pub_ = this->create_publisher<ar_visualisation_msgs::msg::MeshesData>(
+    wall_pub_ = this->create_publisher<situational_graphs_msgs::msg::MeshesData>(
         "/ar_visualisation/mesh_data", 10
+    );
+
+    marker_pub_ = this->create_publisher<situational_graphs_msgs::msg::MarkerData>(
+        "/ar_visualisation/marker_data", 10
     );
 }
 
 void MapCreator::setupSubscriptions()
 {
-    sub_ = this->create_subscription<situational_graphs_msgs::msg::PlanesData>(
+    wall_sub_ = this->create_subscription<situational_graphs_msgs::msg::PlanesData>(
         "/s_graphs/all_map_planes", 10, 
         std::bind(&MapCreator::wallDataCallback, this, std::placeholders::_1)
+    );
+
+    marker_sub_ = this->create_subscription<visualization_msgs::msg::MarkerArray>(
+        "/s_graphs/markers", 10,
+        std::bind(&MapCreator::markerDataCallback, this, std::placeholders::_1)
     );
 }
 
@@ -76,7 +85,101 @@ void MapCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData
 
     data.header.stamp = this->now();
     data.header.frame_id = "base_link";
-    pub_->publish(data);
+    wall_pub_->publish(data);
+}
+
+void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::SharedPtr msg)
+{
+    for (auto marker: msg->markers)
+    {
+        auto ns = marker.ns;
+        auto id = marker.id;
+        std::unordered_map<int, MapMarker> *map;
+        MarkerType type;
+
+        if (ns == "rooms" || ns == "rooms_line")
+        {
+            map = &roomMarkers;
+            type = MarkerType::Room;
+        }
+        else if (ns == "floors" || ns == "floor_lines")
+        {
+            map = &floorMarkers;
+            type = MarkerType::Floor;
+        }
+        else if (ns == "y_infinite_room" || ns == "infinite_room_y_lines")
+        {
+            map = &corridorMarkers;
+            type = MarkerType::Corridor;
+        }
+        else continue;
+
+        if (map->find(id) != map->end())
+        {
+            switch (marker.action)
+            {
+                case 0:
+                    if (ns.find("line") != std::string::npos)
+                    {
+                        (*map)[id].update(
+                            marker.points,
+                            marker.scale,
+                            marker.color,
+                            id,
+                            type
+                        );
+                    }
+                    else 
+                    {
+                        (*map)[id].update(
+                            marker.pose.position,
+                            marker.scale,
+                            marker.color,
+                            id,
+                            type
+                        );
+                    }
+
+                    marker_pub_->publish((*map)[id].getMessage());
+                    break;
+
+                case 2: {
+                    auto msg = (*map)[id].getMessage();
+                    msg.action = 1;
+                    marker_pub_->publish(msg);
+                    map->erase(map->find(id));
+                    break;
+                }
+                default:
+                    continue;
+            }
+        }
+        else 
+        {
+            if (marker.action != 0) continue;
+            
+            if (ns.find("line") != std::string::npos)
+            {
+                (*map)[id] = MapMarker(
+                    marker.points,
+                    marker.scale,
+                    marker.color,
+                    id,
+                    type
+                );
+            }
+            else 
+            {
+                (*map)[id] = MapMarker(
+                    marker.pose.position,
+                    marker.scale,
+                    marker.color,
+                    id,
+                    type
+                );
+            }
+        }
+    }
 }
 
 }

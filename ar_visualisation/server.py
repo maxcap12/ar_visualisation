@@ -16,8 +16,12 @@ class ServerNode(Node):
             Twist, "/cmd_vel", 10
         )
 
-        self.sub_ = self.create_subscription(
+        self.wall_sub_ = self.create_subscription(
             MeshesData, "/ar_visualisation/mesh_data", self.callback, 10
+        )
+
+        self.marker_sub_ = self.create_subscription(
+
         )
 
         self.host = host
