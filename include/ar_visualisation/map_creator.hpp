@@ -11,7 +11,6 @@
 #include "ar_visualisation/map_marker.hpp"
 #include "situational_graphs_msgs/msg/planes_data.hpp"
 #include "situational_graphs_msgs/msg/plane_data.hpp"
-#include "ar_visualisation_msgs/msg/meshes_data.hpp"
 #include "ar_visualisation_msgs/msg/mesh_data.hpp"
 
 namespace ar_visualisation 
