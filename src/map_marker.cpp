@@ -77,6 +77,7 @@ void MapMarker::update(
     if (id != markerId) throw std::runtime_error("Invalid marker ID");
     if (type != markerType) throw std::runtime_error("Invalid marker type");
 
+    linePoints.clear();
     for (size_t i = 1; i < points.size(); i+=2)
         linePoints.push_back(points[i]);
 
