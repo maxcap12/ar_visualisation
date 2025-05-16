@@ -18,7 +18,7 @@ MeshWall::~MeshWall()
 bool MeshWall::update(std::vector<geometry_msgs::msg::Vector3> points)
 {
     if (updating_) return false;
-    if (points.size() - lastCount_ < 50) return false;
+    if (points.size() - lastCount_ < 20) return false;
 
     updating_ = true;
 
@@ -41,7 +41,7 @@ void MeshWall::updateTriangles()
 
     for (unsigned i = 0; i < vertices_.size() - 3; i++)
     {
-        auto nearPoints = getNearestPointsIndex(i, 0.4f, 10);
+        auto nearPoints = getNearestPointsIndex(i, 0.5f, 10);
 
         for (unsigned j = 0; j < nearPoints.size(); j++)
         {
