@@ -8,6 +8,7 @@ import json
 import socket
 import time
 import importlib
+import array
 
 class ServerNode(Node):
     def __init__(self, name: str, host: str, port: int):
@@ -177,14 +178,20 @@ class ServerNode(Node):
         """
         def msg_to_dict(message):
             if hasattr(message, '__slots__'):
-                return {field: msg_to_dict(getattr(message, field)) for field in message.__slots__}
+                return {
+                    field[1:] if field[0] == '_' else field: 
+                    msg_to_dict(getattr(message, field)) for field in message.__slots__
+                }
+            
+            elif isinstance(message, array.array):
+                return list(message)
             
             elif isinstance(message, (list, tuple)):
                 return [msg_to_dict(v) for v in message]
             
             else:
                 return message
-            
+        
         self.send({
             "type": source,
             "timestamp": int(time.time() * 1000),
