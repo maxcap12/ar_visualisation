@@ -32,7 +32,7 @@ private:
 
     rclcpp::Subscription<situational_graphs_msgs::msg::PlanesData>::SharedPtr wall_sub_;
     rclcpp::Subscription<visualization_msgs::msg::MarkerArray>::SharedPtr marker_sub_;
-    rclcpp::Publisher<ar_visualisation_msgs::msg::MeshesData>::SharedPtr wall_pub_;
+    rclcpp::Publisher<ar_visualisation_msgs::msg::MeshData>::SharedPtr wall_pub_;
     rclcpp::Publisher<ar_visualisation_msgs::msg::MarkerData>::SharedPtr marker_pub_;
 
     std::unordered_map<int, MeshWall> walls;

@@ -18,7 +18,7 @@ MapCreator::~MapCreator()
 
 void MapCreator::setupPublishers()
 {
-    wall_pub_ = this->create_publisher<ar_visualisation_msgs::msg::MeshesData>(
+    wall_pub_ = this->create_publisher<ar_visualisation_msgs::msg::MeshData>(
         "/ar_visualisation/mesh_data", 10
     );
 
@@ -47,8 +47,6 @@ void MapCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData
     planes.insert(planes.end(), msg->x_planes.begin(), msg->x_planes.end());
     planes.insert(planes.end(), msg->y_planes.begin(), msg->y_planes.end());
 
-    auto data = ar_visualisation_msgs::msg::MeshesData();
-
     for (auto plane: planes)
     {
         auto id = plane.id;
@@ -58,13 +56,11 @@ void MapCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData
             if (walls[id].update(plane.plane_points))
             {
                 auto mesh_data = ar_visualisation_msgs::msg::MeshData();
-                mesh_data.header.stamp = this->now();
-                mesh_data.header.frame_id = "base_link";
                 mesh_data.id = id;
                 mesh_data.vertices = walls[id].getVertices();
                 mesh_data.triangles = walls[id].getTriangles();
 
-                data.meshes.emplace_back(mesh_data);
+                wall_pub_->publish(mesh_data);
             }
         }
         else
@@ -72,19 +68,13 @@ void MapCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData
             walls[id] = MeshWall(plane.plane_points);
 
             auto mesh_data = ar_visualisation_msgs::msg::MeshData();
-            mesh_data.header.stamp = this->now();
-            mesh_data.header.frame_id = "base_link";
             mesh_data.id = id;
             mesh_data.vertices = walls[id].getVertices();
             mesh_data.triangles = walls[id].getTriangles();
 
-            data.meshes.emplace_back(mesh_data);
+            wall_pub_->publish(mesh_data);
         }
     }
-
-    data.header.stamp = this->now();
-    data.header.frame_id = "base_link";
-    wall_pub_->publish(data);
 }
 
 void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::SharedPtr msg)
