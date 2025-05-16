@@ -7,6 +7,7 @@ import threading
 import json
 import socket
 import time
+import importlib
 
 class ServerNode(Node):
     def __init__(self, name: str, host: str, port: int):
@@ -16,13 +17,7 @@ class ServerNode(Node):
             Twist, "/cmd_vel", 10
         )
 
-        self.wall_sub_ = self.create_subscription(
-            MeshesData, "/ar_visualisation/mesh_data", self.wall_callback, 10
-        )
-
-        self.marker_sub_ = self.create_subscription(
-            MarkerData, "/ar_visualisation/marker_data", self.marker_callback, 10
-        )
+        self.subscriptions_ = {}
 
         self.host = host
         self.port = port
@@ -84,17 +79,29 @@ class ServerNode(Node):
         self.get_logger().info("client connected!")
 
         try:
-            # Instead of iterating over websocket directly
             async for message in websocket:
                 try:
                     data = json.loads(message)
-                    msg = Twist()
-                    msg.linear.x = data["linear"]["x"] * 0.2
-                    msg.linear.y = data["linear"]["y"] * 0.2
-                    msg.linear.z = data["linear"]["z"] * 0.2
-                    msg.angular.z = data["angular"]["z"] * 0.2
 
-                    self.pub_.publish(msg)
+                    match data["type"]:
+                        case "geometry_msgs/Twist":
+                            msg = Twist()
+                            content = data["content"]
+                            msg.linear.x = content["linear"]["x"] * 0.2
+                            msg.linear.y = content["linear"]["y"] * 0.2
+                            msg.linear.z = content["linear"]["z"] * 0.2
+                            msg.angular.z = content["angular"]["z"] * 0.2
+                            self.pub_.publish(msg)
+                        
+                        case "subscribe":
+                            self.add_subscription(data["content"])
+
+                        case "unsubscribe":
+                            self.remove_subscription(data["content"])
+
+                        case _:
+                            # if more types are necessary, the implementation should be changed
+                            self.get_logger().info(f"unsuported message type: {data['type']}")
                 
                 except json.JSONDecodeError:
                     self.get_logger().error("Received invalid JSON message")
@@ -102,66 +109,87 @@ class ServerNode(Node):
                 except Exception as e:
                     self.get_logger().error(f"Error processing message: {e}")
 
-        except websockets.exceptions.ConnectionClosed:
-            pass
+        except websockets.exceptions.ConnectionClosed as e:
+            self.get_logger().info(e)
         
         finally:
             self.connection = None
             self.get_logger().info("client disconnected")
+            self.clear_subscriptions()
 
-    def wall_callback(self, msg: MeshesData):
+    def add_subscription(self, topic_name):
         """
-        Transforms the message received into a JSON, then sends it through the websocket
+        Subscribes to a topic if it exists
         """
-        data = {
-            "type": "wall",
-            "timestamp": time.time(),
-            "data": [
-                {
-                    "id": mesh.id,
-                    "vertices": [{"x": v.x, "y": v.y, "z": v.z} for v in mesh.vertices],
-                    "triangles": list(mesh.triangles)
-                }
-                for mesh in msg.meshes
-            ]
-        }
+        def get_msg_class(type_str):
+            pkg, _, rest = type_str.partition('/')
+            subfolder, _, msg_type = rest.partition('/')
+            module_name = f"{pkg}.{subfolder}"
+            return getattr(importlib.import_module(module_name), msg_type)
 
-        self.send(data)
-        
+        if topic_name in self.subscriptions_.keys(): 
+            self.get_logger().info(f"a subscription to topic {topic_name} already exists")
+            return
 
-    def marker_callback(self, msg: MarkerData):
-        """
-        Transforms the message received into a JSON, then send it through the websocket
-        """
-        data = {
-            "type": "marker",
-            "timestamp": time.time(),
-            "data": {
-                "id": msg.id,
-                "action": msg.action,
-                "type": msg.type,
-                "position": {
-                    "x": msg.position.x, "y": msg.position.y, "z": msg.position.z
-                },
-                "markerScale": {
-                    "x": msg.marker_scale.x, "y": msg.marker_scale.y, "z": msg.marker_scale.z
-                },
-                "markerColor": {
-                    "r": msg.marker_color.r, "g": msg.marker_color.g, "b": msg.marker_color.b, "a": msg.marker_color.a
-                },
-                "lines": [{
-                    "x": line.x, "y": line.y, "z": line.z
-                } for line in msg.lines ],
-                "linesScale": {
-                    "x": msg.lines_scale.x, "y": msg.lines_scale.y, "z": msg.lines_scale.z
-                },
-                "linesColor": {
-                    "r": msg.lines_color.r, "g": msg.lines_color.g, "b": msg.lines_color.b, "a": msg.lines_color.a
-                }
-            }
-        }
+        topics_info = self.get_topic_names_and_types()
 
-        self.send(data)
+        for topic_info in topics_info:
+
+            if (topic_info[0] == topic_name):
+
+                if (len(topic_info[1]) != 1):
+                    self.get_logger().info(f"topic {topic_name} has multiple message types: {';'.join(topic_info[1])}")
+                    return
+                
+                self.subscriptions_[topic_name] = self.create_subscription(
+                    get_msg_class(topic_info[1][0]),
+                    topic_name,
+                    lambda msg: self.msg_callback(msg, topic_name),
+                    10
+                )
+                self.get_logger().info(f"subscribed to topic {topic_name}")
+                return
+            
+        self.get_logger().info(f"topic {topic_name} not found, subscribe process aborted")
+
+    def remove_subscription(self, topic_name):
+        """
+        Unsubscribes from a topic
+        """
+        if topic_name not in self.subscriptions_.keys(): return
+
+        self.destroy_subscription(self.subscriptions_.pop(topic_name))
+        self.get_logger().info(f"unsubscribed from topic {topic_name}")
+
+    def clear_subscriptions(self):
+        """
+        Stops all subscriptions
+        """
+        topics = list(self.subscriptions_.keys())
+
+        for topic_name in topics:
+            self.remove_subscription(topic_name)
+
+    def msg_callback(self, msg, source):
+        """
+        Callback used for every subscription
+        Transforms the message into a json and sends it over the websocket
+        """
+        def msg_to_dict(message):
+            if hasattr(message, '__slots__'):
+                return {field: msg_to_dict(getattr(message, field)) for field in message.__slots__}
+            
+            elif isinstance(message, (list, tuple)):
+                return [msg_to_dict(v) for v in message]
+            
+            else:
+                return message
+            
+        self.send({
+            "type": source,
+            "timestamp": int(time.time() * 1000),
+            "content": msg_to_dict(msg)
+        })
 
     def send(self, data):
         """
@@ -189,6 +217,7 @@ class ServerNode(Node):
         """
         self.get_logger().info("server stopping...")
         self.running = False
+        self.clear_subscriptions()
         
         if self.loop:
             asyncio.run_coroutine_threadsafe(self.cancel_tasks(), self.loop)
