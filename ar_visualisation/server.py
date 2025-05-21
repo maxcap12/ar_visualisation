@@ -1,6 +1,5 @@
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from ar_visualisation_msgs.msg import MeshesData, MarkerData
 import asyncio
 import websockets
 import threading

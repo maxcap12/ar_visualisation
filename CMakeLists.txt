@@ -14,6 +14,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(situational_graphs_msgs REQUIRED)
 find_package(ar_visualisation_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 add_executable(map_creator 
     src/map_creator.cpp 
@@ -34,6 +36,8 @@ ament_target_dependencies(map_creator
   situational_graphs_msgs
   ar_visualisation_msgs
   visualization_msgs
+  tf2_ros
+  tf2_geometry_msgs
 )
 
 ament_python_install_package(${PROJECT_NAME})

@@ -4,7 +4,8 @@ namespace ar_visualisation
 {
 
 MapCreator::MapCreator()
- : Node("map_creator_node")
+ :  Node("map_creator_node"),
+    base_frame("base_link")
 {
   setupPublishers();
   setupSubscriptions();
@@ -38,6 +39,9 @@ void MapCreator::setupSubscriptions()
         "/s_graphs/markers", 10,
         std::bind(&MapCreator::markerDataCallback, this, std::placeholders::_1)
     );
+
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    tf_listener = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
 }
 
 void MapCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData::SharedPtr msg)
@@ -111,7 +115,10 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
                     if (ns.find("line") != std::string::npos)
                     {
                         (*map)[id].update(
-                            marker.points,
+                            update_position(
+                                marker.points,
+                                marker.header.frame_id
+                            ),
                             marker.scale,
                             marker.color,
                             id,
@@ -121,7 +128,10 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
                     else 
                     {
                         (*map)[id].update(
-                            marker.pose.position,
+                            update_position(
+                                marker.pose.position,
+                                marker.header.frame_id
+                            ),
                             marker.scale,
                             marker.color,
                             id,
@@ -150,7 +160,10 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
             if (ns.find("line") != std::string::npos)
             {
                 (*map)[id] = MapMarker(
-                    marker.points,
+                    update_position(
+                        marker.points,
+                        marker.header.frame_id
+                    ),
                     marker.scale,
                     marker.color,
                     id,
@@ -160,7 +173,10 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
             else 
             {
                 (*map)[id] = MapMarker(
-                    marker.pose.position,
+                    update_position(
+                        marker.pose.position,
+                        marker.header.frame_id
+                    ),
                     marker.scale,
                     marker.color,
                     id,
@@ -169,6 +185,63 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
             }
         }
     }
+}
+
+geometry_msgs::msg::Point MapCreator::update_position(const geometry_msgs::msg::Point& position, const std::string& source_frame)
+{
+    geometry_msgs::msg::Point transformed_position;
+    
+    try {
+      geometry_msgs::msg::PointStamped stamped_point;
+      stamped_point.header.frame_id = source_frame;
+      stamped_point.header.stamp = this->now();
+      stamped_point.point = position;
+      
+      geometry_msgs::msg::PointStamped transformed_point;
+      
+      geometry_msgs::msg::TransformStamped transform_stamped = 
+        tf_buffer_->lookupTransform(base_frame, source_frame, tf2::TimePointZero);
+      
+      tf2::doTransform(stamped_point, transformed_point, transform_stamped);
+      
+      transformed_position = transformed_point.point;
+    }
+    catch (tf2::TransformException &ex) {
+      RCLCPP_WARN(this->get_logger(), "Could not transform point: %s", ex.what());
+      transformed_position = position;
+    }
+    
+    return transformed_position;
+}
+
+std::vector<geometry_msgs::msg::Point> MapCreator::update_position(const std::vector<geometry_msgs::msg::Point>& points, const std::string& source_frame)
+  {
+    std::vector<geometry_msgs::msg::Point> transformed_points;
+    transformed_points.reserve(points.size());
+    
+    try {
+      geometry_msgs::msg::TransformStamped transform_stamped = 
+        tf_buffer_->lookupTransform(base_frame, source_frame, tf2::TimePointZero);
+      
+      // Transform each point in the vector
+      for (const auto& point : points) {
+        geometry_msgs::msg::PointStamped stamped_point;
+        stamped_point.header.frame_id = source_frame;
+        stamped_point.header.stamp = this->now();
+        stamped_point.point = point;
+        
+        geometry_msgs::msg::PointStamped transformed_point;
+        tf2::doTransform(stamped_point, transformed_point, transform_stamped);
+        
+        transformed_points.push_back(transformed_point.point);
+      }
+    }
+    catch (tf2::TransformException &ex) {
+      RCLCPP_WARN(this->get_logger(), "Could not transform points: %s", ex.what());
+      transformed_points = points;
+    }
+    
+    return transformed_points;
 }
 
 }
