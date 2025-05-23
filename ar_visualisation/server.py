@@ -190,7 +190,7 @@ class ServerNode(Node):
             
             else:
                 return message
-        
+
         self.send({
             "type": source,
             "timestamp": int(time.time() * 1000),

@@ -12,7 +12,7 @@ MapMarker::MapMarker()
     markerType(0),
     linePoints(),
     lineScale(),
-    lineColor(),
+    lineColors(),
     markerPoint(),
     markerScale(),
     markerColor()
@@ -23,7 +23,7 @@ MapMarker::MapMarker()
 MapMarker::MapMarker(
     const std::vector<geometry_msgs::msg::Point>& points,
     const geometry_msgs::msg::Vector3& scale,
-    const std_msgs::msg::ColorRGBA& color,
+    const std::vector<std_msgs::msg::ColorRGBA>& colors,
     int id,
     int type
 )
@@ -32,13 +32,16 @@ MapMarker::MapMarker(
     hasLines(true),
     linePoints(),
     lineScale(scale),
-    lineColor(color),
+    lineColors(),
     markerPoint(),
     markerScale(),
     markerColor()
 {
     for (size_t i = 1; i < points.size(); i+=2)
         linePoints.push_back(points[i]);
+
+    for (auto color: colors)
+        lineColors.push_back(color);
 }
 
 // marker cube
@@ -54,7 +57,7 @@ MapMarker::MapMarker(
     hasMarker(true),
     linePoints(),
     lineScale(),
-    lineColor(),
+    lineColors(),
     markerPoint(point),
     markerScale(scale),
     markerColor(color)
@@ -69,7 +72,7 @@ MapMarker::~MapMarker()
 void MapMarker::update(
     const std::vector<geometry_msgs::msg::Point>& points,
     const geometry_msgs::msg::Vector3& scale,
-    const std_msgs::msg::ColorRGBA& color,
+    const std::vector<std_msgs::msg::ColorRGBA>& colors,
     int id,
     int type
 ) 
@@ -81,8 +84,11 @@ void MapMarker::update(
     for (size_t i = 1; i < points.size(); i+=2)
         linePoints.push_back(points[i]);
 
+    lineColors.clear();
+    for (auto color: colors)
+        lineColors.push_back(color);
+
     lineScale = scale;
-    lineColor = color;
     hasLines = true;
 }
 
@@ -117,7 +123,7 @@ ar_visualisation_msgs::msg::MarkerData MapMarker::getMessage()
 
     message.lines = linePoints;
     message.lines_scale = lineScale;
-    message.lines_color = lineColor;
+    message.lines_colors = lineColors;
     
     return message;
 }

@@ -5,7 +5,7 @@ namespace ar_visualisation
 
 MapCreator::MapCreator()
  :  Node("map_creator_node"),
-    base_frame("base_link")
+    base_frame("floor_0_walls_layer")
 {
   setupPublishers();
   setupSubscriptions();
@@ -120,7 +120,7 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
                                 marker.header.frame_id
                             ),
                             marker.scale,
-                            marker.color,
+                            marker.colors,
                             id,
                             type
                         );
@@ -165,7 +165,7 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
                         marker.header.frame_id
                     ),
                     marker.scale,
-                    marker.color,
+                    marker.colors,
                     id,
                     type
                 );

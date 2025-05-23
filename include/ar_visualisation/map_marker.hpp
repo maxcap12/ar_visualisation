@@ -20,7 +20,7 @@ public:
     MapMarker(
         const std::vector<geometry_msgs::msg::Point>& points,
         const geometry_msgs::msg::Vector3& scale,
-        const std_msgs::msg::ColorRGBA& color,
+        const std::vector<std_msgs::msg::ColorRGBA>& colors,
         int id,
         int type
     );
@@ -36,7 +36,7 @@ public:
     void update(
         const std::vector<geometry_msgs::msg::Point>& points,
         const geometry_msgs::msg::Vector3& scale,
-        const std_msgs::msg::ColorRGBA& color,
+        const std::vector<std_msgs::msg::ColorRGBA>& colors,
         int id,
         int type
     );
@@ -66,7 +66,7 @@ private:
 
     std::vector<geometry_msgs::msg::Point> linePoints;
     geometry_msgs::msg::Vector3 lineScale;
-    std_msgs::msg::ColorRGBA lineColor;
+    std::vector<std_msgs::msg::ColorRGBA> lineColors;
 
     geometry_msgs::msg::Point markerPoint;
     geometry_msgs::msg::Vector3 markerScale;
