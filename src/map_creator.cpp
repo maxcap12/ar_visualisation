@@ -115,10 +115,7 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
                     if (ns.find("line") != std::string::npos)
                     {
                         (*map)[id].update(
-                            update_position(
-                                marker.points,
-                                marker.header.frame_id
-                            ),
+                            marker.points,
                             marker.scale,
                             marker.colors,
                             id,
@@ -160,10 +157,7 @@ void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::
             if (ns.find("line") != std::string::npos)
             {
                 (*map)[id] = MapMarker(
-                    update_position(
-                        marker.points,
-                        marker.header.frame_id
-                    ),
+                    marker.points,
                     marker.scale,
                     marker.colors,
                     id,
@@ -216,6 +210,12 @@ geometry_msgs::msg::Point MapCreator::update_position(const geometry_msgs::msg::
 
 std::vector<geometry_msgs::msg::Point> MapCreator::update_position(const std::vector<geometry_msgs::msg::Point>& points, const std::string& source_frame)
   {
+    for (auto point: points)
+    {
+        RCLCPP_INFO(this->get_logger(), "old coordinates: x=%.2f, y=%.2f, z=%.2f",
+                point.x, point.y, point.z);
+    }
+    
     std::vector<geometry_msgs::msg::Point> transformed_points;
     transformed_points.reserve(points.size());
     
@@ -239,6 +239,12 @@ std::vector<geometry_msgs::msg::Point> MapCreator::update_position(const std::ve
     catch (tf2::TransformException &ex) {
       RCLCPP_WARN(this->get_logger(), "Could not transform points: %s", ex.what());
       transformed_points = points;
+    }
+
+    for (auto point: transformed_points)
+    {
+        RCLCPP_INFO(this->get_logger(), "new coordinates: x=%.2f, y=%.2f, z=%.2f",
+                point.x, point.y, point.z);
     }
     
     return transformed_points;

@@ -38,7 +38,7 @@ MapMarker::MapMarker(
     markerColor()
 {
     for (size_t i = 1; i < points.size(); i+=2)
-        linePoints.push_back(points[i]);
+        linePoints.push_back(ROS2Unity(points[i]));
 
     for (auto color: colors)
         lineColors.push_back(color);
@@ -58,10 +58,10 @@ MapMarker::MapMarker(
     linePoints(),
     lineScale(),
     lineColors(),
-    markerPoint(point),
     markerScale(scale),
     markerColor(color)
 {
+    markerPoint = ROS2Unity(point);
 }
 
 MapMarker::~MapMarker()
@@ -82,7 +82,7 @@ void MapMarker::update(
 
     linePoints.clear();
     for (size_t i = 1; i < points.size(); i+=2)
-        linePoints.push_back(points[i]);
+        linePoints.push_back(ROS2Unity(points[i]));
 
     lineColors.clear();
     for (auto color: colors)
@@ -104,7 +104,7 @@ void MapMarker::update(
     if (id != markerId) throw std::runtime_error("Invalid marker ID");
     if (type != markerType) throw std::runtime_error("Invalid marker type");
 
-    markerPoint = point;
+    markerPoint = ROS2Unity(point);
     markerScale = scale;
     markerColor = color;
     hasMarker = true;
@@ -126,6 +126,15 @@ ar_visualisation_msgs::msg::MarkerData MapMarker::getMessage()
     message.lines_colors = lineColors;
     
     return message;
+}
+
+geometry_msgs::msg::Point MapMarker::ROS2Unity(const geometry_msgs::msg::Point& point)
+{
+    auto result = point;
+    result.x = -point.y;
+    result.y = point.z;
+    result.z = point.x;
+    return result;
 }
 
 }
