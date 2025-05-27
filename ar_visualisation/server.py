@@ -8,6 +8,9 @@ import socket
 import time
 import importlib
 import array
+import struct
+import numpy as np
+import cv2
 
 class ServerNode(Node):
     def __init__(self, name: str, host: str, port: int):
@@ -141,10 +144,12 @@ class ServerNode(Node):
                     self.get_logger().info(f"topic {topic_name} has multiple message types: {';'.join(topic_info[1])}")
                     return
                 
+                msg_class = get_msg_class(topic_info[1][0])
+                
                 self.subscriptions_[topic_name] = self.create_subscription(
-                    get_msg_class(topic_info[1][0]),
+                    msg_class,
                     topic_name,
-                    lambda msg: self.msg_callback(msg, topic_name),
+                    lambda msg: self.msg_callback(msg, topic_name, "Image" in msg_class),
                     10
                 )
                 self.get_logger().info(f"subscribed to topic {topic_name}")
@@ -170,7 +175,7 @@ class ServerNode(Node):
         for topic_name in topics:
             self.remove_subscription(topic_name)
 
-    def msg_callback(self, msg, source):
+    def msg_callback(self, msg, source, is_img):
         """
         Callback used for every subscription
         Transforms the message into a json and sends it over the websocket
@@ -190,29 +195,79 @@ class ServerNode(Node):
             
             else:
                 return message
+            
+        def msg_to_binary(message, source: str):
+            dtype = np.uint8
+            if "32" in msg.encoding:
+                dtype = np.float32
+            elif "16" in msg.encoding:
+                dtype = np.uint16
+                
+            img = np.frombuffer(msg.data, dtype=dtype).reshape(
+                msg.height, msg.width, -1
+            )
+            
+            if msg.encoding == "bgr8":
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # Quality: 80%
+            _, compressed_data = cv2.imencode(".jpg", img, encode_param)
+            data = compressed_data.tobytes()
+            
+            topic_bytes = source.encode("utf-8")
+            encoding_bytes = message.encoding.encode("utf-8")
 
-        self.send({
-            "type": source,
-            "timestamp": int(time.time() * 1000),
-            "content": msg_to_dict(msg)
-        })
+            header = struct.pack(
+                ">IIIIII",
+                len(topic_bytes), 
+                len(encoding_bytes), 
+                message.height, 
+                message.width,
+                message.step,
+                len(data),
+            )
+            return (
+                header +
+                topic_bytes +
+                encoding_bytes +
+                data
+            )
 
-    def send(self, data):
+        if is_img:
+            self.send(
+                msg_to_binary(msg, source),
+                False
+            )
+        else:
+            self.send({
+                "type": source,
+                "timestamp": int(time.time() * 1000),
+                "content": msg_to_dict(msg)
+                },
+                True
+            )
+
+    def send(self, data, is_json):
         """
-        Sends data through the websocket
+        Sends data as a text frame through the websocket
         """
         if self.connection is None:
             self.get_logger().info("data received but no connection to client")
             return
         
         async def send_data():
-                try:
+            try:
+                if is_json:
                     await self.connection.send(json.dumps(data))
-                    self.get_logger().info("data sent")
+                
+                else:
+                    await self.connection.send(data)
+                    
+                self.get_logger().info("data sent")
 
-                except websockets.exceptions.ConnectionClosed:
-                    self.get_logger().warn("client deconnected while trying to send data")
-                    self.connection = None
+            except websockets.exceptions.ConnectionClosed:
+                self.get_logger().warn("client deconnected while trying to send data")
+                self.connection = None
         
         if self.loop and self.connection:
             future = asyncio.run_coroutine_threadsafe(send_data(), self.loop)
