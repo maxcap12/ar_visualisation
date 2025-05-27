@@ -149,7 +149,7 @@ class ServerNode(Node):
                 self.subscriptions_[topic_name] = self.create_subscription(
                     msg_class,
                     topic_name,
-                    lambda msg: self.msg_callback(msg, topic_name, "Image" in msg_class),
+                    lambda msg: self.msg_callback(msg, topic_name, "Image" in str(msg_class)),
                     10
                 )
                 self.get_logger().info(f"subscribed to topic {topic_name}")
