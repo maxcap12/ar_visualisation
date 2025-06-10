@@ -25,7 +25,7 @@ class MarkerTransformer(Node):
             10
         )
 
-        self.publisher = self.create_publisher(MarkerArray, '/transformed_marker_array', 10)
+        self.publisher = self.create_publisher(MarkerArray, '/ar_visualisation/transformed_markers', 10)
 
     def marker_callback(self, msg: MarkerArray):
         transformed_array = MarkerArray()
