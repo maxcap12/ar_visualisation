@@ -226,6 +226,7 @@ class ServerNode(Node):
                 message.step,
                 len(data),
             )
+            
             return (
                 header +
                 topic_bytes +
@@ -262,8 +263,6 @@ class ServerNode(Node):
                 
                 else:
                     await self.connection.send(data)
-                    
-                self.get_logger().info("data sent")
 
             except websockets.exceptions.ConnectionClosed:
                 self.get_logger().warn("client deconnected while trying to send data")

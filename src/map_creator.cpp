@@ -83,6 +83,7 @@ void MapCreator::wallDataCallback(const situational_graphs_msgs::msg::PlanesData
 
 void MapCreator::markerDataCallback(const visualization_msgs::msg::MarkerArray::SharedPtr msg)
 {
+    return;
     for (auto marker: msg->markers)
     {
         auto ns = marker.ns;
