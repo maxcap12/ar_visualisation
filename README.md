@@ -41,7 +41,7 @@ ros2 launch ar_visualisation ar_visualisation.launch.py
 ## To add an updated version of this package into Spot
 ### On your local machine
 ```bash
-docker build --build-arg ssh_prv_key="$(cat ~/.ssh/id_ed25519)" --build-arg ssh_pub_key="$(cat ~/.ssh/id_ed25519.pub)" -t ar_visualisation ./docker/ar_visualisation/
+docker build -t ar_visualisation ./docker/ar_visualisation/
 ```
 ```bash
 docker save ar_visualisation | gzip > ar_visualisation.tar.gz
