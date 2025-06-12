@@ -149,7 +149,7 @@ class ServerNode(Node):
                 self.subscriptions_[topic_name] = self.create_subscription(
                     msg_class,
                     topic_name,
-                    lambda msg: self.msg_callback(msg, topic_name, "Image" in str(msg_class)),
+                    lambda msg: self.msg_callback(msg, topic_name, str(msg_class)),
                     10
                 )
                 self.get_logger().info(f"subscribed to topic {topic_name}")
@@ -175,7 +175,7 @@ class ServerNode(Node):
         for topic_name in topics:
             self.remove_subscription(topic_name)
 
-    def msg_callback(self, msg, source, is_img):
+    def msg_callback(self, msg, source, msg_type):
         """
         Callback used for every subscription
         Transforms the message into a json and sends it over the websocket
@@ -196,7 +196,7 @@ class ServerNode(Node):
             else:
                 return message
             
-        def msg_to_binary(message, source: str):
+        def image_to_binary():
             dtype = np.uint8
             if "32" in msg.encoding:
                 dtype = np.float32
@@ -215,15 +215,15 @@ class ServerNode(Node):
             data = compressed_data.tobytes()
             
             topic_bytes = source.encode("utf-8")
-            encoding_bytes = message.encoding.encode("utf-8")
+            encoding_bytes = msg.encoding.encode("utf-8")
 
             header = struct.pack(
                 ">IIIIII",
                 len(topic_bytes), 
                 len(encoding_bytes), 
-                message.height, 
-                message.width,
-                message.step,
+                msg.height, 
+                msg.width,
+                msg.step,
                 len(data),
             )
             
@@ -233,12 +233,62 @@ class ServerNode(Node):
                 encoding_bytes +
                 data
             )
+        
+        from sensor_msgs.msg import PointCloud2
+        def pc_to_binary():
+            msg = PointCloud2()
+            source = "test"
 
-        if is_img:
+            data = np.frombuffer(msg.data, np.uint8).reshape(
+                msg.height, msg.width, -1
+            ).tobytes()
+
+            binary_fields = b''
+
+            for field in msg.fields:
+                binary_name = field.name.encode("utf-8")
+                binary_fields += struct.pack(
+                    ">IIII",
+                    len(binary_name),
+                    field.offset,
+                    field.datatype,
+                    field.count
+                ) + binary_name
+
+            topic_bytes = source.encode("utf-8")
+
+            header = struct.pack(
+                ">IIII??III",
+                msg.height,
+                msg.width,
+                msg.point_step,
+                msg.row_step,
+                msg.is_bigendian,
+                msg.is_dense,
+                len(binary_fields),
+                len(topic_bytes),
+                len(data)
+            )
+
+            return (
+                header +
+                topic_bytes +
+                binary_fields +
+                data
+            )
+
+        if "Image" in msg_type:
             self.send(
-                msg_to_binary(msg, source),
+                image_to_binary(),
                 False
             )
+
+        if "PointCloud2" in msg_type:
+            self.send(
+                pc_to_binary(),
+                False
+            )
+
         else:
             self.send({
                 "type": source,
